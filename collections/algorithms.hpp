@@ -8,6 +8,8 @@
 #include <functional>
 #include <iterator>
 #include <format>
+#include <execution>
+#include <random>
 
 namespace cpp26_algorithms {
 
