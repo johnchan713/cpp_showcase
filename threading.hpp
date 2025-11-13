@@ -460,9 +460,9 @@ void demonstrate_helper_functions() {
         t.join();
     }
 
-    // Using std::ranges::all_of on regular vector
+    // Using std::all_of on regular vector
     std::vector<int> numbers = {2, 4, 6, 8, 10};
-    bool all_even = std::ranges::all_of(numbers, [](int x) { return x % 2 == 0; });
+    bool all_even = std::all_of(numbers.begin(), numbers.end(), [](int x) { return x % 2 == 0; });
     std::cout << std::format("All numbers even: {}\n", all_even);
 }
 

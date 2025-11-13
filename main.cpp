@@ -7,12 +7,38 @@
 #include "basics.hpp"
 #include "templates.hpp"
 #include "oop.hpp"
-#include "collections.hpp"
 #include "threading.hpp"
+
+// Include all collection modules
+#include "collections/vector.hpp"
+#include "collections/array.hpp"
+#include "collections/list_deque.hpp"
+#include "collections/map.hpp"
+#include "collections/set.hpp"
+#include "collections/unordered.hpp"
+#include "collections/adapters.hpp"
+#include "collections/algorithms.hpp"
+#include "collections/ranges.hpp"
 
 // ============================================================================
 // Menu system for interactive demonstration
 // ============================================================================
+void display_collections_menu() {
+    std::cout << "\n=== COLLECTIONS MENU ===\n";
+    std::cout << "  1. Vector (Dynamic Array)\n";
+    std::cout << "  2. Array (Fixed-size Array)\n";
+    std::cout << "  3. List, Forward_list, Deque (Linked Lists)\n";
+    std::cout << "  4. Map & Multimap (Ordered Key-Value)\n";
+    std::cout << "  5. Set & Multiset (Ordered Sets)\n";
+    std::cout << "  6. Unordered Map & Set (Hash-based)\n";
+    std::cout << "  7. Stack, Queue, Priority Queue (Adapters)\n";
+    std::cout << "  8. STL Algorithms\n";
+    std::cout << "  9. Ranges (C++20)\n";
+    std::cout << "  A. Run All Collections\n";
+    std::cout << "  0. Back to Main Menu\n";
+    std::cout << "\nEnter choice: ";
+}
+
 void display_menu() {
     std::cout << "\n";
     std::cout << "╔════════════════════════════════════════════════════════════╗\n";
@@ -117,15 +143,92 @@ int main() {
                 wait_for_enter();
                 break;
 
-            case 4:
-                std::cout << "\n" << std::string(60, '=') << "\n";
-                std::cout << "           COLLECTIONS DEMONSTRATIONS\n";
-                std::cout << std::string(60, '=') << "\n";
-                time_execution("Collections", []() {
-                    cpp26_collections::run_all_demos();
-                });
-                wait_for_enter();
+            case 4: {
+                // Collections submenu
+                bool in_collections = true;
+                while (in_collections) {
+                    display_collections_menu();
+                    char col_choice;
+                    std::cin >> col_choice;
+
+                    if (std::cin.fail()) {
+                        std::cin.clear();
+                        std::cin.ignore(10000, '\n');
+                        std::cout << "Invalid input\n";
+                        continue;
+                    }
+
+                    switch (col_choice) {
+                        case '1':
+                            std::cout << "\n=== VECTOR ===\n";
+                            time_execution("Vector", cpp26_vector::run_all_demos);
+                            wait_for_enter();
+                            break;
+                        case '2':
+                            std::cout << "\n=== ARRAY ===\n";
+                            time_execution("Array", cpp26_array::run_all_demos);
+                            wait_for_enter();
+                            break;
+                        case '3':
+                            std::cout << "\n=== LIST, DEQUE ===\n";
+                            time_execution("List/Deque", cpp26_list_deque::run_all_demos);
+                            wait_for_enter();
+                            break;
+                        case '4':
+                            std::cout << "\n=== MAP ===\n";
+                            time_execution("Map", cpp26_map::run_all_demos);
+                            wait_for_enter();
+                            break;
+                        case '5':
+                            std::cout << "\n=== SET ===\n";
+                            time_execution("Set", cpp26_set::run_all_demos);
+                            wait_for_enter();
+                            break;
+                        case '6':
+                            std::cout << "\n=== UNORDERED ===\n";
+                            time_execution("Unordered", cpp26_unordered::run_all_demos);
+                            wait_for_enter();
+                            break;
+                        case '7':
+                            std::cout << "\n=== ADAPTERS ===\n";
+                            time_execution("Adapters", cpp26_adapters::run_all_demos);
+                            wait_for_enter();
+                            break;
+                        case '8':
+                            std::cout << "\n=== ALGORITHMS ===\n";
+                            time_execution("Algorithms", cpp26_algorithms::run_all_demos);
+                            wait_for_enter();
+                            break;
+                        case '9':
+                            std::cout << "\n=== RANGES ===\n";
+                            time_execution("Ranges", cpp26_ranges::run_all_demos);
+                            wait_for_enter();
+                            break;
+                        case 'A': case 'a':
+                            std::cout << "\n=== ALL COLLECTIONS ===\n";
+                            time_execution("All Collections", []() {
+                                cpp26_vector::run_all_demos();
+                                cpp26_array::run_all_demos();
+                                cpp26_list_deque::run_all_demos();
+                                cpp26_map::run_all_demos();
+                                cpp26_set::run_all_demos();
+                                cpp26_unordered::run_all_demos();
+                                cpp26_adapters::run_all_demos();
+                                cpp26_algorithms::run_all_demos();
+                                cpp26_ranges::run_all_demos();
+                            });
+                            wait_for_enter();
+                            break;
+                        case '0':
+                            in_collections = false;
+                            break;
+                        default:
+                            std::cout << "Invalid choice\n";
+                            break;
+                    }
+                }
                 break;
+            }
 
             case 5:
                 std::cout << "\n" << std::string(60, '=') << "\n";
@@ -153,7 +256,15 @@ int main() {
                     cpp26_oop::run_all_demos();
 
                     std::cout << "\n\n### COLLECTIONS ###\n";
-                    cpp26_collections::run_all_demos();
+                    cpp26_vector::run_all_demos();
+                    cpp26_array::run_all_demos();
+                    cpp26_list_deque::run_all_demos();
+                    cpp26_map::run_all_demos();
+                    cpp26_set::run_all_demos();
+                    cpp26_unordered::run_all_demos();
+                    cpp26_adapters::run_all_demos();
+                    cpp26_algorithms::run_all_demos();
+                    cpp26_ranges::run_all_demos();
 
                     std::cout << "\n\n### THREADING ###\n";
                     cpp26_threading::run_all_demos();
