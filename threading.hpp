@@ -223,6 +223,468 @@ void demonstrate_atomic() {
 }
 
 // ============================================================================
+// MEMORY ORDERS - Fine-grained control over atomic operations
+// Usage: Control synchronization and ordering guarantees
+// ============================================================================
+void demonstrate_memory_orders() {
+    std::cout << "\n=== MEMORY ORDERS ===\n";
+
+    std::atomic<int> data{0};
+    std::atomic<bool> ready{false};
+
+    // memory_order_relaxed - No synchronization, only atomicity
+    std::cout << "memory_order_relaxed: No ordering guarantees, just atomicity\n";
+    data.store(42, std::memory_order_relaxed);
+    int val = data.load(std::memory_order_relaxed);
+    std::cout << std::format("  Relaxed load: {}\n", val);
+
+    // memory_order_acquire/release - Synchronizes with other threads
+    std::cout << "\nmemory_order_release/acquire: Synchronization pair\n";
+    std::thread producer([&]() {
+        data.store(100, std::memory_order_relaxed);
+        ready.store(true, std::memory_order_release);  // Release
+    });
+
+    std::thread consumer([&]() {
+        while (!ready.load(std::memory_order_acquire));  // Acquire
+        std::cout << std::format("  Acquired data: {}\n", data.load(std::memory_order_relaxed));
+    });
+
+    producer.join();
+    consumer.join();
+
+    // memory_order_seq_cst - Sequentially consistent (default, strongest)
+    std::cout << "\nmemory_order_seq_cst: Sequentially consistent (default)\n";
+    std::atomic<int> x{0}, y{0};
+    std::atomic<int> r1{0}, r2{0};
+
+    std::thread t1([&]() {
+        x.store(1, std::memory_order_seq_cst);
+        r1.store(y.load(std::memory_order_seq_cst), std::memory_order_relaxed);
+    });
+
+    std::thread t2([&]() {
+        y.store(1, std::memory_order_seq_cst);
+        r2.store(x.load(std::memory_order_seq_cst), std::memory_order_relaxed);
+    });
+
+    t1.join();
+    t2.join();
+    std::cout << std::format("  r1={}, r2={} (never both 0 with seq_cst)\n", r1.load(), r2.load());
+
+    // memory_order_acq_rel - Both acquire and release
+    std::cout << "\nmemory_order_acq_rel: Combined acquire+release\n";
+    std::atomic<int> counter{0};
+    counter.fetch_add(1, std::memory_order_acq_rel);
+    std::cout << "  Used in fetch_add for read-modify-write\n";
+
+    // memory_order_consume - Data dependency ordering (rarely used)
+    std::cout << "\nmemory_order_consume: Data dependency ordering\n";
+    std::cout << "  (Rarely used, similar to acquire but weaker)\n";
+}
+
+// ============================================================================
+// COMPARE-EXCHANGE - Lock-free compare-and-swap operations
+// Usage: Atomic read-modify-write with expected value check
+// ============================================================================
+void demonstrate_compare_exchange() {
+    std::cout << "\n=== COMPARE-EXCHANGE OPERATIONS ===\n";
+
+    std::atomic<int> value{10};
+
+    // compare_exchange_strong - Never spuriously fails
+    int expected = 10;
+    bool success = value.compare_exchange_strong(expected, 20);
+    std::cout << std::format("CAS strong: expected={}, new={}, success={}\n",
+                             expected, value.load(), success);
+
+    // Failed CAS updates expected
+    expected = 15;  // Wrong expected value
+    success = value.compare_exchange_strong(expected, 30);
+    std::cout << std::format("CAS strong (fail): expected was {}, actual={}, success={}\n",
+                             expected, value.load(), success);
+
+    // compare_exchange_weak - May spuriously fail (use in loops)
+    value.store(20);
+    expected = 20;
+    success = value.compare_exchange_weak(expected, 25);
+    std::cout << std::format("CAS weak: new={}, success={}\n", value.load(), success);
+
+    // Typical CAS loop pattern
+    std::cout << "\nCAS loop pattern (increment):\n";
+    value.store(100);
+    int old_val = value.load();
+    while (!value.compare_exchange_weak(old_val, old_val + 5)) {
+        // old_val is updated on failure, retry
+    }
+    std::cout << std::format("  After CAS loop: {}\n", value.load());
+
+    // With memory orders
+    expected = 105;
+    value.compare_exchange_strong(expected, 200,
+                                   std::memory_order_release,
+                                   std::memory_order_relaxed);
+    std::cout << std::format("CAS with memory orders: {}\n", value.load());
+}
+
+// ============================================================================
+// LOCK-FREE PROGRAMMING - Lock-free data structures
+// Usage: High-performance concurrent data structures without locks
+// ============================================================================
+
+// Lock-free stack
+template<typename T>
+class LockFreeStack {
+private:
+    struct Node {
+        T data;
+        Node* next;
+        Node(T val) : data(val), next(nullptr) {}
+    };
+
+    std::atomic<Node*> head{nullptr};
+
+public:
+    void push(T value) {
+        Node* new_node = new Node(value);
+        new_node->next = head.load(std::memory_order_relaxed);
+
+        while (!head.compare_exchange_weak(new_node->next, new_node,
+                                            std::memory_order_release,
+                                            std::memory_order_relaxed)) {
+            // Retry on failure
+        }
+    }
+
+    bool pop(T& result) {
+        Node* old_head = head.load(std::memory_order_relaxed);
+
+        while (old_head &&
+               !head.compare_exchange_weak(old_head, old_head->next,
+                                            std::memory_order_acquire,
+                                            std::memory_order_relaxed)) {
+            // Retry on failure
+        }
+
+        if (old_head) {
+            result = old_head->data;
+            delete old_head;
+            return true;
+        }
+        return false;
+    }
+
+    bool is_lock_free() const {
+        return head.is_lock_free();
+    }
+};
+
+void demonstrate_lock_free() {
+    std::cout << "\n=== LOCK-FREE DATA STRUCTURES ===\n";
+
+    LockFreeStack<int> stack;
+
+    std::cout << std::format("Stack is lock-free: {}\n", stack.is_lock_free());
+
+    // Push from multiple threads
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 5; ++i) {
+        threads.emplace_back([&stack, i]() {
+            for (int j = 0; j < 10; ++j) {
+                stack.push(i * 10 + j);
+            }
+        });
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    // Pop all elements
+    int value;
+    int count = 0;
+    while (stack.pop(value)) {
+        count++;
+    }
+
+    std::cout << std::format("Pushed/popped {} elements\n", count);
+
+    // is_lock_free for various types
+    std::atomic<int> atomic_int;
+    std::atomic<long long> atomic_ll;
+    std::atomic<void*> atomic_ptr;
+
+    std::cout << std::format("\nLock-free status:\n");
+    std::cout << std::format("  int: {}\n", atomic_int.is_lock_free());
+    std::cout << std::format("  long long: {}\n", atomic_ll.is_lock_free());
+    std::cout << std::format("  pointer: {}\n", atomic_ptr.is_lock_free());
+}
+
+// ============================================================================
+// ATOMIC FLAG - Simplest atomic type
+// Usage: Lock-free boolean flag
+// ============================================================================
+void demonstrate_atomic_flag() {
+    std::cout << "\n=== ATOMIC FLAG ===\n";
+
+    std::atomic_flag flag = ATOMIC_FLAG_INIT;
+
+    // test_and_set
+    bool was_set = flag.test_and_set();
+    std::cout << std::format("test_and_set() returned: {}\n", was_set);
+
+    was_set = flag.test_and_set();
+    std::cout << std::format("test_and_set() again: {}\n", was_set);
+
+    // clear
+    flag.clear();
+    std::cout << "Flag cleared\n";
+
+    was_set = flag.test_and_set();
+    std::cout << std::format("test_and_set() after clear: {}\n", was_set);
+
+    // test (C++20) - non-modifying test
+    flag.clear();
+    bool is_set = flag.test();
+    std::cout << std::format("test() (C++20): {}\n", is_set);
+
+    // Spinlock using atomic_flag
+    std::cout << "\nSpinlock example:\n";
+    std::atomic_flag spinlock = ATOMIC_FLAG_INIT;
+    int shared_data = 0;
+
+    auto worker = [&](int id) {
+        // Acquire lock
+        while (spinlock.test_and_set(std::memory_order_acquire));
+
+        // Critical section
+        shared_data++;
+        std::cout << std::format("  Thread {} incremented to {}\n", id, shared_data);
+
+        // Release lock
+        spinlock.clear(std::memory_order_release);
+    };
+
+    std::thread t1(worker, 1);
+    std::thread t2(worker, 2);
+    t1.join();
+    t2.join();
+}
+
+// ============================================================================
+// ATOMIC OPERATIONS - All atomic operations
+// Usage: Complete set of atomic operations
+// ============================================================================
+void demonstrate_atomic_operations() {
+    std::cout << "\n=== ATOMIC OPERATIONS ===\n";
+
+    std::atomic<int> counter{0};
+
+    // fetch_add
+    int old = counter.fetch_add(5);
+    std::cout << std::format("fetch_add(5): old={}, new={}\n", old, counter.load());
+
+    // fetch_sub
+    old = counter.fetch_sub(2);
+    std::cout << std::format("fetch_sub(2): old={}, new={}\n", old, counter.load());
+
+    // fetch_and (bitwise AND)
+    counter.store(0b1111);
+    old = counter.fetch_and(0b1010);
+    std::cout << std::format("fetch_and: old={:04b}, new={:04b}\n", old, counter.load());
+
+    // fetch_or (bitwise OR)
+    counter.store(0b1010);
+    old = counter.fetch_or(0b0101);
+    std::cout << std::format("fetch_or: old={:04b}, new={:04b}\n", old, counter.load());
+
+    // fetch_xor (bitwise XOR)
+    counter.store(0b1010);
+    old = counter.fetch_xor(0b1100);
+    std::cout << std::format("fetch_xor: old={:04b}, new={:04b}\n", old, counter.load());
+
+    // exchange
+    old = counter.exchange(100);
+    std::cout << std::format("exchange(100): old={}, new={}\n", old, counter.load());
+
+    // Atomic operations return old value
+    counter.store(10);
+    old = counter++;  // Equivalent to fetch_add(1)
+    std::cout << std::format("operator++: returned old={}, new={}\n", old, counter.load());
+
+    old = ++counter;  // Increment then return new
+    std::cout << std::format("++operator: returned new={}\n", old);
+}
+
+// ============================================================================
+// MEMORY FENCES - Explicit memory barriers
+// Usage: Control memory ordering without atomic variables
+// ============================================================================
+void demonstrate_memory_fences() {
+    std::cout << "\n=== MEMORY FENCES ===\n";
+
+    std::atomic<bool> ready{false};
+    int data = 0;
+
+    // atomic_thread_fence - Memory barrier
+    std::thread writer([&]() {
+        data = 42;  // Non-atomic write
+        std::atomic_thread_fence(std::memory_order_release);
+        ready.store(true, std::memory_order_relaxed);
+    });
+
+    std::thread reader([&]() {
+        while (!ready.load(std::memory_order_relaxed));
+        std::atomic_thread_fence(std::memory_order_acquire);
+        std::cout << std::format("Data read: {}\n", data);  // Non-atomic read
+    });
+
+    writer.join();
+    reader.join();
+
+    std::cout << "Fence types:\n";
+    std::cout << "  atomic_thread_fence(release) - Prevents earlier writes from moving after\n";
+    std::cout << "  atomic_thread_fence(acquire) - Prevents later reads from moving before\n";
+    std::cout << "  atomic_thread_fence(seq_cst) - Full memory barrier\n";
+}
+
+// ============================================================================
+// THREAD_LOCAL STORAGE - Expanded examples
+// Usage: Per-thread variables with detailed examples
+// ============================================================================
+void demonstrate_thread_local_expanded() {
+    std::cout << "\n=== THREAD_LOCAL EXPANDED ===\n";
+
+    // Thread-local counter
+    thread_local int tls_counter = 0;
+
+    auto worker = [](int id, int iterations) {
+        for (int i = 0; i < iterations; ++i) {
+            tls_counter++;
+        }
+        std::cout << std::format("Thread {}: tls_counter = {}\n", id, tls_counter);
+    };
+
+    std::thread t1(worker, 1, 5);
+    std::thread t2(worker, 2, 10);
+    t1.join();
+    t2.join();
+
+    std::cout << "Main thread tls_counter: " << tls_counter << "\n";
+
+    // Thread-local with class
+    struct ThreadData {
+        int id = 0;
+        std::string name;
+
+        ThreadData() {
+            id = std::hash<std::thread::id>{}(std::this_thread::get_id()) % 1000;
+            name = std::format("Thread-{}", id);
+        }
+    };
+
+    thread_local ThreadData data;
+
+    auto print_data = []() {
+        std::cout << std::format("  {}: id={}\n", data.name, data.id);
+    };
+
+    std::thread t3(print_data);
+    std::thread t4(print_data);
+    t3.join();
+    t4.join();
+}
+
+// ============================================================================
+// PACKAGED_TASK EXPANDED - More examples
+// Usage: Advanced packaged_task usage
+// ============================================================================
+void demonstrate_packaged_task_expanded() {
+    std::cout << "\n=== PACKAGED_TASK EXPANDED ===\n";
+
+    // Basic packaged_task
+    std::packaged_task<int(int, int)> task([](int a, int b) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        return a + b;
+    });
+
+    std::future<int> result = task.get_future();
+    std::thread worker(std::move(task), 10, 20);
+
+    std::cout << "Waiting for result...\n";
+    std::cout << std::format("Result: {}\n", result.get());
+    worker.join();
+
+    // Reusable task with reset
+    std::packaged_task<int(int)> reusable_task([](int x) {
+        return x * x;
+    });
+
+    auto fut1 = reusable_task.get_future();
+    reusable_task(5);
+    std::cout << std::format("First run: {}\n", fut1.get());
+
+    // Reset for reuse
+    reusable_task.reset();
+    auto fut2 = reusable_task.get_future();
+    reusable_task(7);
+    std::cout << std::format("After reset: {}\n", fut2.get());
+
+    // Task with exception handling
+    std::packaged_task<int()> error_task([]() -> int {
+        throw std::runtime_error("Task error!");
+    });
+
+    auto error_fut = error_task.get_future();
+    error_task();
+
+    try {
+        error_fut.get();
+    } catch (const std::exception& e) {
+        std::cout << std::format("Caught exception: {}\n", e.what());
+    }
+}
+
+// ============================================================================
+// THREAD_GUARD - RAII wrapper for std::thread
+// Usage: Ensures thread is joined or detached
+// ============================================================================
+class thread_guard {
+private:
+    std::thread& t;
+public:
+    explicit thread_guard(std::thread& t_) : t(t_) {}
+
+    ~thread_guard() {
+        if (t.joinable()) {
+            t.join();
+        }
+    }
+
+    thread_guard(const thread_guard&) = delete;
+    thread_guard& operator=(const thread_guard&) = delete;
+};
+
+void demonstrate_thread_guard() {
+    std::cout << "\n=== THREAD_GUARD (RAII) ===\n";
+
+    auto worker = [](int id) {
+        std::cout << std::format("Thread {} starting\n", id);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::cout << std::format("Thread {} finished\n", id);
+    };
+
+    std::thread t1(worker, 1);
+    thread_guard guard1(t1);  // RAII: automatically joins on scope exit
+
+    std::thread t2(worker, 2);
+    thread_guard guard2(t2);
+
+    std::cout << "Threads will be automatically joined when guards go out of scope\n";
+    // No need to call t1.join() or t2.join() - guards handle it
+}
+
+// ============================================================================
 // FUTURE & PROMISE - Asynchronous result retrieval
 // Usage: std::future/promise for async task results
 // ============================================================================
@@ -253,6 +715,37 @@ void demonstrate_future_promise() {
 
     std::future<int> async_result = std::async(std::launch::async, async_task, 10, 20);
     std::cout << std::format("Async result: {}\n", async_result.get());
+}
+
+// ============================================================================
+// SHARED_FUTURE - Multiple threads can wait on same result
+// Usage: std::shared_future for broadcasting results
+// ============================================================================
+void demonstrate_shared_future() {
+    std::cout << "\n=== SHARED_FUTURE ===\n";
+
+    std::promise<int> prom;
+    std::shared_future<int> sfut = prom.get_future().share();
+
+    auto waiter = [](int id, std::shared_future<int> fut) {
+        std::cout << std::format("Thread {} waiting...\n", id);
+        int value = fut.get();  // Multiple threads can call get()
+        std::cout << std::format("Thread {} received: {}\n", id, value);
+    };
+
+    // Multiple threads can share the same future
+    std::thread t1(waiter, 1, sfut);
+    std::thread t2(waiter, 2, sfut);
+    std::thread t3(waiter, 3, sfut);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    prom.set_value(100);  // Broadcast to all waiting threads
+
+    t1.join();
+    t2.join();
+    t3.join();
+
+    std::cout << "All threads received the shared value\n";
 }
 
 // ============================================================================
@@ -549,7 +1042,17 @@ void run_all_demos() {
     demonstrate_shared_mutex();
     demonstrate_condition_variable();
     demonstrate_atomic();
+    demonstrate_memory_orders();
+    demonstrate_compare_exchange();
+    demonstrate_lock_free();
+    demonstrate_atomic_flag();
+    demonstrate_atomic_operations();
+    demonstrate_memory_fences();
+    demonstrate_thread_local_expanded();
+    demonstrate_packaged_task_expanded();
+    demonstrate_thread_guard();
     demonstrate_future_promise();
+    demonstrate_shared_future();
     demonstrate_packaged_task();
     demonstrate_semaphore();
     demonstrate_latch();

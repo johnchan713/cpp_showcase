@@ -7,8 +7,18 @@
 #include <utility>
 #include <tuple>
 #include <functional>
+#include <format>
+#include <string_view>
+
+using namespace std::string_literals;  // For string literals
+using namespace std::string_view_literals;  // For string_view literals
 
 namespace cpp26_basics {
+
+// User-defined literal (must be at namespace scope)
+constexpr unsigned long long operator""_KB(unsigned long long size) {
+    return size * 1024;
+}
 
 // ============================================================================
 // VARIABLES - Different types and declarations
@@ -531,6 +541,256 @@ void demonstrate_static_assert() {
 }
 
 // ============================================================================
+// CONST AND CONSTEXPR - Compile-time constants
+// ============================================================================
+void demonstrate_const_constexpr() {
+    std::cout << "\n=== CONST AND CONSTEXPR ===\n";
+
+    // const - runtime constant
+    const int const_value = 42;
+    std::cout << std::format("const value: {}\n", const_value);
+
+    // constexpr - compile-time constant (C++11)
+    constexpr int constexpr_value = 100;
+    std::cout << std::format("constexpr value: {}\n", constexpr_value);
+
+    // constexpr function
+    constexpr auto square = [](int x) constexpr { return x * x; };
+    constexpr int result = square(5);  // Evaluated at compile time
+    std::cout << std::format("constexpr square(5): {}\n", result);
+
+    // constexpr if (C++17)
+    auto check_type = []<typename T>(T value) {
+        if constexpr (std::is_integral_v<T>) {
+            return "integral type";
+        } else if constexpr (std::is_floating_point_v<T>) {
+            return "floating point type";
+        } else {
+            return "other type";
+        }
+    };
+
+    std::cout << std::format("check_type(42): {}\n", check_type(42));
+    std::cout << std::format("check_type(3.14): {}\n", check_type(3.14));
+
+    // consteval (C++20) - must be evaluated at compile time
+    auto consteval_func = [](int x) consteval { return x * x * x; };
+    constexpr int cube = consteval_func(3);
+    std::cout << std::format("consteval cube(3): {}\n", cube);
+
+    // constinit (C++20) - ensures compile-time initialization
+    constinit static int constinit_var = 50;
+    std::cout << std::format("constinit variable: {}\n", constinit_var);
+}
+
+// ============================================================================
+// NULLPTR - Null pointer literal (C++11)
+// ============================================================================
+void demonstrate_nullptr() {
+    std::cout << "\n=== NULLPTR ===\n";
+
+    // nullptr vs NULL
+    int* ptr1 = nullptr;  // Modern C++ way
+    int* ptr2 = NULL;     // Old C way (avoid)
+    int* ptr3 = 0;        // Even older way (avoid)
+
+    std::cout << std::format("ptr1 (nullptr): {}\n", static_cast<void*>(ptr1));
+    std::cout << std::format("ptr2 (NULL): {}\n", static_cast<void*>(ptr2));
+
+    // nullptr is type-safe
+    auto check_pointer = [](int* p) {
+        if (p == nullptr) {
+            return "null pointer";
+        }
+        return "valid pointer";
+    };
+
+    std::cout << std::format("check_pointer(ptr1): {}\n", check_pointer(ptr1));
+
+    // nullptr with smart pointers
+    std::unique_ptr<int> smart_ptr = nullptr;
+    std::cout << std::format("smart_ptr is null: {}\n", smart_ptr == nullptr);
+
+    smart_ptr = std::make_unique<int>(42);
+    std::cout << std::format("smart_ptr after assignment: {}\n", *smart_ptr);
+}
+
+// ============================================================================
+// LITERALS - String, binary, and user-defined literals
+// ============================================================================
+void demonstrate_literals() {
+    std::cout << "\n=== LITERALS ===\n";
+
+    // String literals (C++14)
+    auto str1 = "hello"s;  // std::string
+    auto str2 = "world"sv; // std::string_view
+    std::cout << std::format("String literal: {}\n", str1);
+    std::cout << std::format("String_view literal: {}\n", str2);
+
+    // Raw string literals (C++11)
+    auto raw_str = R"(This is a raw string
+with multiple lines
+and "quotes" without escaping)";
+    std::cout << "Raw string:\n" << raw_str << "\n";
+
+    // Binary literals (C++14)
+    int binary1 = 0b1010;      // 10 in decimal
+    int binary2 = 0b11110000;  // 240 in decimal
+    std::cout << std::format("Binary 0b1010 = {}\n", binary1);
+    std::cout << std::format("Binary 0b11110000 = {}\n", binary2);
+
+    // Digit separators (C++14)
+    int large_num = 1'000'000;
+    int hex_val = 0xFF'FF'FF'FF;
+    std::cout << std::format("With digit separators: {}\n", large_num);
+    std::cout << std::format("Hex with separators: 0x{:X}\n", hex_val);
+
+    // Character literals
+    char c1 = 'A';
+    wchar_t c2 = L'B';
+    char16_t c3 = u'C';
+    char32_t c4 = U'D';
+    std::cout << std::format("char: {}\n", c1);
+
+    // User-defined literals (defined at namespace scope)
+    auto file_size = 100_KB;
+    std::cout << std::format("100_KB = {} bytes\n", file_size);
+}
+
+// ============================================================================
+// DECLTYPE - Type deduction (C++11)
+// ============================================================================
+void demonstrate_decltype() {
+    std::cout << "\n=== DECLTYPE ===\n";
+
+    int x = 42;
+    double y = 3.14;
+
+    // decltype - deduce type
+    decltype(x) another_int = 100;
+    decltype(y) another_double = 2.71;
+
+    std::cout << std::format("decltype(x): {}\n", another_int);
+    std::cout << std::format("decltype(y): {}\n", another_double);
+
+    // decltype with expressions
+    decltype(x + y) sum = x + y;  // Type is double
+    std::cout << std::format("decltype(x + y): {}\n", sum);
+
+    // decltype(auto) - perfect forwarding of type (C++14)
+    auto func1 = []() -> int& {
+        static int val = 10;
+        return val;
+    };
+
+    decltype(auto) ref = func1();  // Preserves reference
+    ref = 20;
+    std::cout << std::format("decltype(auto) with reference: {}\n", func1());
+
+    // Using decltype in trailing return types
+    auto add = [](auto a, auto b) -> decltype(a + b) {
+        return a + b;
+    };
+
+    std::cout << std::format("add(5, 3): {}\n", add(5, 3));
+    std::cout << std::format("add(2.5, 1.5): {}\n", add(2.5, 1.5));
+}
+
+// ============================================================================
+// ENUMS - enum class and enum initialization
+// ============================================================================
+void demonstrate_enums() {
+    std::cout << "\n=== ENUMS ===\n";
+
+    // Traditional enum (C-style)
+    enum OldColor { RED, GREEN, BLUE };
+    OldColor old_color = RED;
+    std::cout << std::format("Old enum value: {}\n", static_cast<int>(old_color));
+
+    // enum class (C++11) - scoped and type-safe
+    enum class Color { Red, Green, Blue };
+    Color color = Color::Red;
+    std::cout << std::format("enum class value: {}\n", static_cast<int>(color));
+
+    // enum class with explicit type
+    enum class Status : uint8_t {
+        Idle = 0,
+        Running = 1,
+        Stopped = 2
+    };
+    Status status = Status::Running;
+    std::cout << std::format("Status: {}\n", static_cast<int>(status));
+
+    // Using enum (C++20) - brings enum names into scope
+    {
+        using enum Color;
+        Color c = Red;  // No need for Color::Red
+        std::cout << std::format("Using enum: {}\n", static_cast<int>(c));
+    }
+
+    // Enum initialization
+    enum class Priority : int {
+        Low = 1,
+        Medium = 5,
+        High = 10,
+        Critical = 100
+    };
+
+    Priority p1 = Priority::Medium;
+    Priority p2 = Priority::Critical;
+    std::cout << std::format("Priority Medium: {}\n", static_cast<int>(p1));
+    std::cout << std::format("Priority Critical: {}\n", static_cast<int>(p2));
+
+    // Scoped enums prevent implicit conversion
+    // int x = Color::Red;  // Error: cannot implicitly convert
+    int x = static_cast<int>(Color::Red);  // OK: explicit conversion
+    std::cout << std::format("Explicit conversion: {}\n", x);
+}
+
+// ============================================================================
+// STD::FORMAT - Modern string formatting (C++20)
+// ============================================================================
+void demonstrate_format() {
+    std::cout << "\n=== STD::FORMAT (C++20) ===\n";
+
+    // Basic formatting
+    std::string name = "Alice";
+    int age = 30;
+    std::cout << std::format("Name: {}, Age: {}\n", name, age);
+
+    // Positional arguments
+    std::cout << std::format("{1} is {0} years old\n", age, name);
+
+    // Format specifications
+    double pi = 3.14159265359;
+    std::cout << std::format("Pi: {:.2f}\n", pi);
+    std::cout << std::format("Pi: {:.5f}\n", pi);
+
+    // Integer formatting
+    int num = 42;
+    std::cout << std::format("Decimal: {}\n", num);
+    std::cout << std::format("Hex: {:x}\n", num);
+    std::cout << std::format("Binary: {:b}\n", num);
+    std::cout << std::format("Octal: {:o}\n", num);
+
+    // Alignment and width
+    std::cout << std::format("Left: {:<10}|\n", "text");
+    std::cout << std::format("Right: {:>10}|\n", "text");
+    std::cout << std::format("Center: {:^10}|\n", "text");
+
+    // Fill character
+    std::cout << std::format("Filled: {:*^10}|\n", "text");
+
+    // Sign control
+    std::cout << std::format("Positive: {:+}\n", 42);
+    std::cout << std::format("Negative: {:+}\n", -42);
+
+    // Type-safe formatting
+    std::cout << std::format("Bool: {}\n", true);
+    std::cout << std::format("Pointer: {}\n", static_cast<void*>(nullptr));
+}
+
+// ============================================================================
 // Main demonstration function
 // ============================================================================
 void run_all_demos() {
@@ -549,6 +809,12 @@ void run_all_demos() {
     demonstrate_function_pointers();
     demonstrate_ref();
     demonstrate_static_assert();
+    demonstrate_const_constexpr();
+    demonstrate_nullptr();
+    demonstrate_literals();
+    demonstrate_decltype();
+    demonstrate_enums();
+    demonstrate_format();
 }
 
 } // namespace cpp26_basics
