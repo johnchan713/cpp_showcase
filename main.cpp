@@ -10,6 +10,9 @@
 #include "threading.hpp"
 #include "coroutines.hpp"
 #include "math.hpp"
+#include "chrono.hpp"
+#include "preprocessor.hpp"
+#include "lambda.hpp"
 
 // Include all collection modules
 #include "collections/vector.hpp"
@@ -52,9 +55,12 @@ void display_menu() {
     std::cout << "  2. Templates (Function/Class Templates, Metaprogramming)\n";
     std::cout << "  3. OOP (Classes, Inheritance, Polymorphism, Move Semantics)\n";
     std::cout << "  4. Collections (Vector, Map, Set, Algorithms, Ranges)\n";
-    std::cout << "  5. Threading (Threads, Mutex, Async, Semaphore, Barrier)\n";
+    std::cout << "  5. Threading (Threads, Mutex, Atomics, Memory Orders)\n";
     std::cout << "  6. Coroutines (C++20 Generators, Tasks, Awaitables)\n";
     std::cout << "  7. Math (Constants, Trig, Complex, Special Functions)\n";
+    std::cout << "  9. Chrono (Time, Durations, Clocks, Calendar, Timezones)\n";
+    std::cout << " 10. Preprocessor (Macros, Directives, Predefined Macros)\n";
+    std::cout << " 11. Lambda (Captures, Generic, Variadic, Recursive)\n";
     std::cout << "  8. Run All Demonstrations\n";
     std::cout << "  0. Exit\n";
     std::cout << "\nEnter your choice: ";
@@ -264,6 +270,36 @@ int main() {
                 wait_for_enter();
                 break;
 
+            case 9:
+                std::cout << "\n" << std::string(60, '=') << "\n";
+                std::cout << "           CHRONO DEMONSTRATIONS\n";
+                std::cout << std::string(60, '=') << "\n";
+                time_execution("Chrono", []() {
+                    cpp26_chrono::run_all_demos();
+                });
+                wait_for_enter();
+                break;
+
+            case 10:
+                std::cout << "\n" << std::string(60, '=') << "\n";
+                std::cout << "           PREPROCESSOR DEMONSTRATIONS\n";
+                std::cout << std::string(60, '=') << "\n";
+                time_execution("Preprocessor", []() {
+                    cpp26_preprocessor::run_all_demos();
+                });
+                wait_for_enter();
+                break;
+
+            case 11:
+                std::cout << "\n" << std::string(60, '=') << "\n";
+                std::cout << "           LAMBDA DEMONSTRATIONS\n";
+                std::cout << std::string(60, '=') << "\n";
+                time_execution("Lambda", []() {
+                    cpp26_lambda::run_all_demos();
+                });
+                wait_for_enter();
+                break;
+
             case 8:
                 std::cout << "\n" << std::string(60, '=') << "\n";
                 std::cout << "           RUNNING ALL DEMONSTRATIONS\n";
@@ -298,6 +334,15 @@ int main() {
 
                     std::cout << "\n\n### MATH ###\n";
                     cpp26_math::run_all_demos();
+
+                    std::cout << "\n\n### CHRONO ###\n";
+                    cpp26_chrono::run_all_demos();
+
+                    std::cout << "\n\n### PREPROCESSOR ###\n";
+                    cpp26_preprocessor::run_all_demos();
+
+                    std::cout << "\n\n### LAMBDA ###\n";
+                    cpp26_lambda::run_all_demos();
                 });
 
                 wait_for_enter();
