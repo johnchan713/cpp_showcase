@@ -8,6 +8,8 @@
 #include "templates.hpp"
 #include "oop.hpp"
 #include "threading.hpp"
+#include "coroutines.hpp"
+#include "math.hpp"
 
 // Include all collection modules
 #include "collections/vector.hpp"
@@ -51,7 +53,9 @@ void display_menu() {
     std::cout << "  3. OOP (Classes, Inheritance, Polymorphism, Move Semantics)\n";
     std::cout << "  4. Collections (Vector, Map, Set, Algorithms, Ranges)\n";
     std::cout << "  5. Threading (Threads, Mutex, Async, Semaphore, Barrier)\n";
-    std::cout << "  6. Run All Demonstrations\n";
+    std::cout << "  6. Coroutines (C++20 Generators, Tasks, Awaitables)\n";
+    std::cout << "  7. Math (Constants, Trig, Complex, Special Functions)\n";
+    std::cout << "  8. Run All Demonstrations\n";
     std::cout << "  0. Exit\n";
     std::cout << "\nEnter your choice: ";
 }
@@ -242,6 +246,26 @@ int main() {
 
             case 6:
                 std::cout << "\n" << std::string(60, '=') << "\n";
+                std::cout << "           COROUTINES DEMONSTRATIONS\n";
+                std::cout << std::string(60, '=') << "\n";
+                time_execution("Coroutines", []() {
+                    cpp26_coroutines::run_all_demos();
+                });
+                wait_for_enter();
+                break;
+
+            case 7:
+                std::cout << "\n" << std::string(60, '=') << "\n";
+                std::cout << "           MATH DEMONSTRATIONS\n";
+                std::cout << std::string(60, '=') << "\n";
+                time_execution("Math", []() {
+                    cpp26_math::run_all_demos();
+                });
+                wait_for_enter();
+                break;
+
+            case 8:
+                std::cout << "\n" << std::string(60, '=') << "\n";
                 std::cout << "           RUNNING ALL DEMONSTRATIONS\n";
                 std::cout << std::string(60, '=') << "\n";
 
@@ -268,6 +292,12 @@ int main() {
 
                     std::cout << "\n\n### THREADING ###\n";
                     cpp26_threading::run_all_demos();
+
+                    std::cout << "\n\n### COROUTINES ###\n";
+                    cpp26_coroutines::run_all_demos();
+
+                    std::cout << "\n\n### MATH ###\n";
+                    cpp26_math::run_all_demos();
                 });
 
                 wait_for_enter();
