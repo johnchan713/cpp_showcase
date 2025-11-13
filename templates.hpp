@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <concepts>
 #include <vector>
+#include <array>
 #include <utility>
 
 namespace cpp26_templates {
@@ -353,6 +354,83 @@ void demonstrate_deduction_guides() {
 }
 
 // ============================================================================
+// DIAMOND OPERATOR / CTAD (Class Template Argument Deduction)
+// C++17 feature that allows omitting template arguments
+// ============================================================================
+template<typename T, typename U>
+class Pair {
+public:
+    T first;
+    U second;
+
+    Pair(T f, U s) : first(f), second(s) {}
+
+    void display() const {
+        std::cout << "Pair: (" << first << ", " << second << ")\n";
+    }
+};
+
+// Deduction guide for Pair
+template<typename T, typename U>
+Pair(T, U) -> Pair<T, U>;
+
+template<typename T>
+class Container {
+private:
+    std::vector<T> data;
+public:
+    Container(std::initializer_list<T> init) : data(init) {}
+
+    void display() const {
+        std::cout << "Container: ";
+        for (const auto& item : data) {
+            std::cout << item << " ";
+        }
+        std::cout << "\n";
+    }
+};
+
+// Deduction guide for Container
+template<typename T>
+Container(std::initializer_list<T>) -> Container<T>;
+
+void demonstrate_diamond_operator() {
+    std::cout << "\n=== DIAMOND OPERATOR / CTAD (C++17) ===\n";
+
+    // C++17: No need to specify template arguments!
+    // The compiler deduces them from constructor arguments
+    Pair p1(42, "Hello");  // Deduced as Pair<int, const char*>
+    p1.display();
+
+    Pair p2(3.14, 100);  // Deduced as Pair<double, int>
+    p2.display();
+
+    // With std::pair - diamond operator
+    std::pair pair1(1, 2.5);  // Deduced as std::pair<int, double>
+    std::cout << "std::pair with CTAD: (" << pair1.first << ", " << pair1.second << ")\n";
+
+    // With std::vector - diamond operator with initializer list
+    std::vector vec{1, 2, 3, 4, 5};  // Deduced as std::vector<int>
+    std::cout << "std::vector with CTAD, size: " << vec.size() << "\n";
+
+    // Custom container with diamond operator
+    Container c1{10, 20, 30, 40};  // Deduced as Container<int>
+    c1.display();
+
+    Container c2{1.1, 2.2, 3.3};  // Deduced as Container<double>
+    c2.display();
+
+    // std::array with CTAD (C++17)
+    std::array arr{1, 2, 3, 4, 5};  // Deduced as std::array<int, 5>
+    std::cout << "std::array with CTAD, size: " << arr.size() << "\n";
+
+    // Old way (before C++17) - had to specify template arguments:
+    // Pair<int, std::string> p3(42, "Old way");
+
+    std::cout << "Diamond operator allows cleaner, more concise code!\n";
+}
+
+// ============================================================================
 // Main demonstration function
 // ============================================================================
 void run_all_demos() {
@@ -365,6 +443,7 @@ void run_all_demos() {
     demonstrate_template_template_params();
     demonstrate_fold_expressions();
     demonstrate_deduction_guides();
+    demonstrate_diamond_operator();
 }
 
 } // namespace cpp26_templates

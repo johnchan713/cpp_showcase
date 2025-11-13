@@ -2,14 +2,14 @@
 
 #include <iostream>
 #include <vector>
+#include <list>
 #include <algorithm>
 #include <numeric>
 #include <functional>
+#include <iterator>
 #include <format>
-#include <random>
-#include <memory>
 #include <execution>
-#include <cstdlib>  // For qsort, bsearch
+#include <random>
 
 namespace cpp26_algorithms {
 
@@ -157,11 +157,7 @@ void demonstrate_modifying_algorithms() {
     std::cout << "\n";
 
     // shuffle()
-    std::mt19937 rng{std::random_device{}()};
-    std::shuffle(v.begin(), v.end(), rng);
-    std::cout << "shuffle(): ";
-    for (auto x : v) std::cout << x << " ";
-    std::cout << "\n";
+    // std::shuffle(v.begin(), v.end(), std::mt19937{std::random_device{}()});
 }
 
 void demonstrate_numeric_algorithms() {
@@ -281,38 +277,123 @@ void demonstrate_query_algorithms() {
     std::cout << std::format("count_if (even): {}\n", count_even);
 }
 
-// ============================================================================
-// PARTITION ALGORITHMS
-// ============================================================================
-void demonstrate_partition_algorithms() {
-    std::cout << "\n=== PARTITION ALGORITHMS ===\n";
+void demonstrate_heap_operations() {
+    std::cout << "\n=== HEAP OPERATIONS ===\n";
 
-    // partition()
-    std::vector<int> v = {1, 2, 3, 4, 5, 6, 7, 8, 9};
-    auto pivot = std::partition(v.begin(), v.end(), [](int x) { return x % 2 == 0; });
-    std::cout << "partition (even first): ";
+    std::vector<int> v = {3, 1, 4, 1, 5, 9, 2, 6};
+
+    // make_heap - converts range into a max heap
+    std::make_heap(v.begin(), v.end());
+    std::cout << "After make_heap (max heap): ";
     for (auto x : v) std::cout << x << " ";
-    std::cout << std::format(" (pivot at index {})\n", std::distance(v.begin(), pivot));
+    std::cout << "\n";
+    std::cout << std::format("Heap top (max element): {}\n", v.front());
 
-    // stable_partition() - maintains relative order
-    v = {1, 2, 3, 4, 5, 6, 7, 8, 9};
-    pivot = std::stable_partition(v.begin(), v.end(), [](int x) { return x % 2 == 0; });
-    std::cout << "stable_partition (even first): ";
+    // push_heap - adds new element to heap
+    v.push_back(10);
+    std::push_heap(v.begin(), v.end());
+    std::cout << "After push_heap(10): ";
+    for (auto x : v) std::cout << x << " ";
+    std::cout << std::format("\nNew heap top: {}\n", v.front());
+
+    // pop_heap - moves max element to end
+    std::pop_heap(v.begin(), v.end());
+    int max = v.back();
+    v.pop_back();
+    std::cout << std::format("Popped max element: {}\n", max);
+    std::cout << "Heap after pop_heap: ";
     for (auto x : v) std::cout << x << " ";
     std::cout << "\n";
 
-    // is_partitioned()
-    bool partitioned = std::is_partitioned(v.begin(), v.end(), [](int x) { return x % 2 == 0; });
-    std::cout << std::format("is_partitioned (even first): {}\n", partitioned);
+    // sort_heap - sorts heap in ascending order (destroys heap property)
+    std::sort_heap(v.begin(), v.end());
+    std::cout << "After sort_heap (ascending): ";
+    for (auto x : v) std::cout << x << " ";
+    std::cout << "\n";
 
-    // partition_point() - finds partition point
-    auto pp = std::partition_point(v.begin(), v.end(), [](int x) { return x % 2 == 0; });
-    std::cout << std::format("partition_point: index {}\n", std::distance(v.begin(), pp));
+    // Min heap example
+    std::vector<int> v2 = {3, 1, 4, 1, 5, 9, 2, 6};
+    std::make_heap(v2.begin(), v2.end(), std::greater<int>());
+    std::cout << "Min heap: ";
+    for (auto x : v2) std::cout << x << " ";
+    std::cout << std::format("\nMin heap top: {}\n", v2.front());
 }
 
-// ============================================================================
-// PERMUTATION ALGORITHMS
-// ============================================================================
+void demonstrate_partition_algorithms() {
+    std::cout << "\n=== PARTITION ALGORITHMS ===\n";
+
+    // partition - reorders elements so that those satisfying predicate come first
+    std::vector<int> v1 = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    auto partition_point_it = std::partition(v1.begin(), v1.end(),
+                                             [](int x) { return x % 2 == 0; });
+    std::cout << "After partition (even first): ";
+    for (auto x : v1) std::cout << x << " ";
+    std::cout << std::format("\nPartition point index: {}\n",
+                            std::distance(v1.begin(), partition_point_it));
+
+    // stable_partition - like partition but preserves relative order
+    std::vector<int> v2 = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    auto stable_part_it = std::stable_partition(v2.begin(), v2.end(),
+                                                [](int x) { return x % 2 == 0; });
+    std::cout << "After stable_partition (even first): ";
+    for (auto x : v2) std::cout << x << " ";
+    std::cout << std::format("\nStable partition point: {}\n",
+                            std::distance(v2.begin(), stable_part_it));
+
+    // partition_point - finds partition point in already partitioned range
+    std::vector<int> v3 = {2, 4, 6, 8, 1, 3, 5, 7, 9};  // Already partitioned (even, then odd)
+    auto pp = std::partition_point(v3.begin(), v3.end(),
+                                   [](int x) { return x % 2 == 0; });
+    std::cout << std::format("partition_point on pre-partitioned range: index {}\n",
+                            std::distance(v3.begin(), pp));
+
+    // is_partitioned - checks if range is partitioned
+    bool is_part = std::is_partitioned(v3.begin(), v3.end(),
+                                       [](int x) { return x % 2 == 0; });
+    std::cout << std::format("is_partitioned (even first): {}\n", is_part);
+}
+
+void demonstrate_back_inserter() {
+    std::cout << "\n=== BACK_INSERTER & ITERATORS ===\n";
+
+    std::vector<int> src = {1, 2, 3, 4, 5};
+    std::vector<int> dst;
+
+    // back_inserter - creates an insert iterator that appends elements
+    std::cout << "Source: ";
+    for (auto x : src) std::cout << x << " ";
+    std::cout << "\n";
+
+    // Using back_inserter with copy
+    std::copy(src.begin(), src.end(), std::back_inserter(dst));
+    std::cout << "After copy with back_inserter: ";
+    for (auto x : dst) std::cout << x << " ";
+    std::cout << "\n";
+
+    // Using back_inserter with transform
+    std::vector<int> squared;
+    std::transform(src.begin(), src.end(), std::back_inserter(squared),
+                   [](int x) { return x * x; });
+    std::cout << "Squared with back_inserter: ";
+    for (auto x : squared) std::cout << x << " ";
+    std::cout << "\n";
+
+    // Using back_inserter with copy_if
+    std::vector<int> evens;
+    std::copy_if(src.begin(), src.end(), std::back_inserter(evens),
+                 [](int x) { return x % 2 == 0; });
+    std::cout << "Even numbers with back_inserter: ";
+    for (auto x : evens) std::cout << x << " ";
+    std::cout << "\n";
+
+    // front_inserter (for containers like deque, list)
+    std::list<int> lst;
+    std::copy(src.begin(), src.end(), std::front_inserter(lst));
+    std::cout << "List with front_inserter (reversed): ";
+    for (auto x : lst) std::cout << x << " ";
+    std::cout << "\n";
+}
+
 void demonstrate_permutation_algorithms() {
     std::cout << "\n=== PERMUTATION ALGORITHMS ===\n";
 
@@ -823,7 +904,9 @@ void run_all_demos() {
     demonstrate_set_algorithms();
     demonstrate_min_max_algorithms();
     demonstrate_query_algorithms();
+    demonstrate_heap_operations();
     demonstrate_partition_algorithms();
+    demonstrate_back_inserter();
     demonstrate_permutation_algorithms();
     demonstrate_heap_algorithms();
     demonstrate_merge_algorithms();
