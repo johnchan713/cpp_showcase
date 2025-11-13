@@ -543,6 +543,113 @@ void demonstrate_rule_of_five() {
 }
 
 // ============================================================================
+// CONSTRUCTORS - Default, Deleted, and Delegating
+// ============================================================================
+class ConstructorDemo {
+private:
+    int value;
+    std::string name;
+
+public:
+    // Default constructor (compiler-generated)
+    ConstructorDemo() = default;
+
+    // Parameterized constructor
+    ConstructorDemo(int v) : value(v), name("unnamed") {
+        std::cout << "ConstructorDemo(int): value=" << value << "\n";
+    }
+
+    // Delegating constructor - delegates to another constructor
+    ConstructorDemo(int v, std::string n) : ConstructorDemo(v) {
+        name = std::move(n);
+        std::cout << "Delegating constructor: name=" << name << "\n";
+    }
+
+    // Another delegating constructor
+    ConstructorDemo(std::string n) : ConstructorDemo(0, std::move(n)) {
+        std::cout << "Delegating to two-param constructor\n";
+    }
+
+    void display() const {
+        std::cout << std::format("  value={}, name='{}'\n", value, name);
+    }
+};
+
+// Class with deleted constructors
+class NonCopyable {
+private:
+    int data;
+
+public:
+    NonCopyable(int d) : data(d) {
+        std::cout << "NonCopyable constructor\n";
+    }
+
+    // Delete copy constructor - prevents copying
+    NonCopyable(const NonCopyable&) = delete;
+
+    // Delete copy assignment - prevents copy assignment
+    NonCopyable& operator=(const NonCopyable&) = delete;
+
+    // Default move constructor (still allows moving)
+    NonCopyable(NonCopyable&&) = default;
+
+    // Default move assignment
+    NonCopyable& operator=(NonCopyable&&) = default;
+
+    int getData() const { return data; }
+};
+
+class OnlyStackAllocated {
+public:
+    OnlyStackAllocated() {
+        std::cout << "OnlyStackAllocated created\n";
+    }
+
+    // Delete operator new - prevents heap allocation
+    void* operator new(size_t) = delete;
+    void* operator new[](size_t) = delete;
+};
+
+void demonstrate_constructors() {
+    std::cout << "\n=== CONSTRUCTORS (Default, Deleted, Delegating) ===\n";
+
+    // Default constructor
+    std::cout << "Using default constructor:\n";
+    ConstructorDemo obj1;
+    // obj1.display();  // Would show uninitialized values
+
+    // Parameterized constructor
+    std::cout << "\nUsing parameterized constructor:\n";
+    ConstructorDemo obj2(42);
+    obj2.display();
+
+    // Delegating constructor
+    std::cout << "\nUsing delegating constructor:\n";
+    ConstructorDemo obj3(100, "MyObject");
+    obj3.display();
+
+    std::cout << "\nAnother delegating constructor:\n";
+    ConstructorDemo obj4("AnotherObject");
+    obj4.display();
+
+    // Deleted constructors
+    std::cout << "\nNonCopyable class:\n";
+    NonCopyable nc1(42);
+    // NonCopyable nc2 = nc1;  // Error: copy constructor deleted
+    // NonCopyable nc3(nc1);   // Error: copy constructor deleted
+
+    // But move is allowed
+    NonCopyable nc4 = std::move(nc1);
+    std::cout << "Moved value: " << nc4.getData() << "\n";
+
+    // Deleted operator new
+    std::cout << "\nOnlyStackAllocated:\n";
+    OnlyStackAllocated stack_obj;
+    // OnlyStackAllocated* heap_obj = new OnlyStackAllocated();  // Error: new is deleted
+}
+
+// ============================================================================
 // Main demonstration function
 // ============================================================================
 void run_all_demos() {
@@ -555,6 +662,7 @@ void run_all_demos() {
     demonstrate_friend();
     demonstrate_move_semantics();
     demonstrate_rule_of_five();
+    demonstrate_constructors();
 }
 
 } // namespace cpp26_oop

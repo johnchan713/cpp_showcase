@@ -4,6 +4,9 @@
 #include <string>
 #include <memory>
 #include <type_traits>
+#include <utility>
+#include <tuple>
+#include <functional>
 
 namespace cpp26_basics {
 
@@ -274,6 +277,260 @@ void demonstrate_references() {
 }
 
 // ============================================================================
+// PAIR AND TUPLE - Utility types for grouping values
+// ============================================================================
+void demonstrate_pair_and_tuple() {
+    std::cout << "\n=== PAIR & TUPLE ===\n";
+
+    // std::pair - holds two values
+    std::pair<int, std::string> p1(42, "Answer");
+    std::cout << "Pair: (" << p1.first << ", " << p1.second << ")\n";
+
+    // make_pair - creates pair with type deduction
+    auto p2 = std::make_pair(3.14, "Pi");
+    std::cout << "make_pair: (" << p2.first << ", " << p2.second << ")\n";
+
+    // Structured bindings (C++17)
+    auto [num, str] = p1;
+    std::cout << "Structured binding: num=" << num << ", str=" << str << "\n";
+
+    // std::tuple - holds multiple values of different types
+    std::tuple<int, double, std::string> t1(1, 2.5, "tuple");
+    std::cout << "Tuple: (" << std::get<0>(t1) << ", "
+              << std::get<1>(t1) << ", " << std::get<2>(t1) << ")\n";
+
+    // make_tuple - creates tuple with type deduction
+    auto t2 = std::make_tuple(100, 3.14159, "pi", 'x');
+    std::cout << "make_tuple size: " << std::tuple_size<decltype(t2)>::value << "\n";
+
+    // Structured bindings with tuple
+    auto [a, b, c] = t1;
+    std::cout << "Tuple structured binding: a=" << a << ", b=" << b << ", c=" << c << "\n";
+
+    // tie - unpacks values
+    int x;
+    double y;
+    std::string z;
+    std::tie(x, y, z) = t1;
+    std::cout << "tie unpacked: x=" << x << ", y=" << y << ", z=" << z << "\n";
+
+    // ignore - skip values when unpacking
+    std::tie(x, std::ignore, z) = t1;
+    std::cout << "tie with ignore: x=" << x << ", z=" << z << "\n";
+}
+
+// ============================================================================
+// IMPLICIT CONVERSIONS - Automatic type conversions
+// ============================================================================
+class ImplicitConverter {
+private:
+    int value;
+
+public:
+    // Implicit conversion from int
+    ImplicitConverter(int v) : value(v) {
+        std::cout << "  Implicit conversion from int: " << v << "\n";
+    }
+
+    // Explicit conversion prevents implicit conversion
+    explicit ImplicitConverter(double d) : value(static_cast<int>(d)) {
+        std::cout << "  Explicit conversion from double: " << d << "\n";
+    }
+
+    // Conversion operator - allows implicit conversion TO int
+    operator int() const {
+        std::cout << "  Converting to int\n";
+        return value;
+    }
+
+    int getValue() const { return value; }
+};
+
+void demonstrate_implicit_conversions() {
+    std::cout << "\n=== IMPLICIT CONVERSIONS ===\n";
+
+    // Implicit conversion from int
+    ImplicitConverter ic1 = 42;  // Calls ImplicitConverter(int)
+
+    // Explicit keyword prevents implicit conversion from double
+    // ImplicitConverter ic2 = 3.14;  // Error: would require explicit
+    ImplicitConverter ic2(3.14);     // OK: direct initialization
+
+    // Implicit conversion TO int via conversion operator
+    int val = ic1;  // Calls operator int()
+    std::cout << "Converted value: " << val << "\n";
+
+    // Standard implicit conversions
+    int i = 42;
+    double d = i;  // Implicit int to double
+    std::cout << "int to double: " << i << " -> " << d << "\n";
+
+    double d2 = 3.14159;
+    int i2 = static_cast<int>(d2);  // Explicit (narrowing prevented implicitly)
+    std::cout << "double to int (explicit): " << d2 << " -> " << i2 << "\n";
+
+    // Pointer conversions
+    int* ptr = &i;
+    void* void_ptr = ptr;  // Implicit pointer to void*
+    std::cout << "Pointer to void*: OK\n";
+}
+
+// ============================================================================
+// IF/SWITCH WITH INITIALIZER (C++17)
+// ============================================================================
+void demonstrate_if_switch_init() {
+    std::cout << "\n=== IF/SWITCH WITH INITIALIZER (C++17) ===\n";
+
+    // If with initializer - variable scope limited to if block
+    if (auto val = 42; val > 10) {
+        std::cout << "if-init: val=" << val << " is greater than 10\n";
+    }
+    // val not accessible here
+
+    // Useful for checking map insertion/lookup
+    std::pair<int, std::string> data = {100, "test"};
+    if (auto [key, value] = data; key > 50) {
+        std::cout << "if-init with structured binding: key=" << key
+                  << ", value=" << value << "\n";
+    }
+
+    // Switch with initializer (C++17)
+    switch (auto choice = 2; choice) {
+        case 1:
+            std::cout << "switch-init: choice is 1\n";
+            break;
+        case 2:
+            std::cout << "switch-init: choice is 2\n";
+            break;
+        default:
+            std::cout << "switch-init: default case\n";
+            break;
+    }
+    // choice not accessible here
+
+    // Practical example with switch-init
+    enum class Status { OK, ERROR, PENDING };
+    switch (auto status = Status::OK; status) {
+        case Status::OK:
+            std::cout << "Status: OK\n";
+            break;
+        case Status::ERROR:
+            std::cout << "Status: ERROR\n";
+            break;
+        case Status::PENDING:
+            std::cout << "Status: PENDING\n";
+            break;
+    }
+}
+
+// ============================================================================
+// FUNCTION POINTERS
+// ============================================================================
+int add_func(int a, int b) { return a + b; }
+int multiply_func(int a, int b) { return a * b; }
+int subtract_func(int a, int b) { return a - b; }
+
+void demonstrate_function_pointers() {
+    std::cout << "\n=== FUNCTION POINTERS ===\n";
+
+    // Basic function pointer
+    int (*func_ptr)(int, int) = add_func;
+    std::cout << "Function pointer result: " << func_ptr(5, 3) << "\n";
+
+    // Change function pointer target
+    func_ptr = multiply_func;
+    std::cout << "Changed to multiply: " << func_ptr(5, 3) << "\n";
+
+    // Array of function pointers
+    int (*operations[])(int, int) = {add_func, subtract_func, multiply_func};
+    std::cout << "operations[0](10, 5) = " << operations[0](10, 5) << "\n";
+    std::cout << "operations[1](10, 5) = " << operations[1](10, 5) << "\n";
+    std::cout << "operations[2](10, 5) = " << operations[2](10, 5) << "\n";
+
+    // Using type alias for readability
+    using BinaryOp = int(*)(int, int);
+    BinaryOp op = add_func;
+    std::cout << "Type alias: " << op(7, 3) << "\n";
+
+    // Function pointer as parameter
+    auto execute = [](int a, int b, int (*operation)(int, int)) {
+        return operation(a, b);
+    };
+    std::cout << "Passed as parameter: " << execute(6, 4, subtract_func) << "\n";
+}
+
+// ============================================================================
+// STD::REF and STD::CREF - Reference wrappers
+// ============================================================================
+void modify_value(int& x) {
+    x *= 2;
+}
+
+void demonstrate_ref() {
+    std::cout << "\n=== STD::REF & STD::CREF ===\n";
+
+    int value = 10;
+    std::cout << "Original value: " << value << "\n";
+
+    // std::ref creates a reference wrapper
+    auto ref_wrapper = std::ref(value);
+    ref_wrapper.get() = 20;
+    std::cout << "After ref_wrapper modification: " << value << "\n";
+
+    // Useful with threads and algorithms that copy parameters
+    value = 30;
+    modify_value(ref_wrapper);
+    std::cout << "After modify_value: " << value << "\n";
+
+    // std::cref creates a const reference wrapper
+    const int const_value = 100;
+    auto cref_wrapper = std::cref(const_value);
+    std::cout << "cref_wrapper value: " << cref_wrapper.get() << "\n";
+
+    // Practical use: passing references to std::bind or std::thread
+    auto bound_func = std::bind(modify_value, std::ref(value));
+    bound_func();
+    std::cout << "After bound function with std::ref: " << value << "\n";
+
+    // Type deduction with reference_wrapper
+    std::reference_wrapper<int> ref_wrap = value;
+    ref_wrap.get() = 100;
+    std::cout << "Final value: " << value << "\n";
+}
+
+// ============================================================================
+// STATIC_ASSERT - Compile-time assertions
+// ============================================================================
+void demonstrate_static_assert() {
+    std::cout << "\n=== STATIC_ASSERT ===\n";
+
+    // Basic static_assert
+    static_assert(sizeof(int) >= 4, "int must be at least 4 bytes");
+    std::cout << "static_assert: sizeof(int) >= 4 passed\n";
+
+    // C++17 static_assert without message
+    static_assert(sizeof(void*) >= sizeof(int));
+    std::cout << "static_assert: sizeof(void*) >= sizeof(int) passed\n";
+
+    // Type trait checks
+    static_assert(std::is_integral_v<int>, "int must be integral type");
+    static_assert(std::is_pointer_v<int*>, "int* must be pointer type");
+    static_assert(!std::is_const_v<int>, "int must not be const");
+
+    std::cout << "All static_assert checks passed at compile time\n";
+
+    // Template with static_assert
+    auto check_type = []<typename T>(T value) {
+        static_assert(std::is_arithmetic_v<T>, "Type must be arithmetic");
+        std::cout << "Value: " << value << " (arithmetic type)\n";
+    };
+
+    check_type(42);
+    check_type(3.14);
+    // check_type("string");  // Would fail at compile time
+}
+
+// ============================================================================
 // Main demonstration function
 // ============================================================================
 void run_all_demos() {
@@ -286,6 +543,12 @@ void run_all_demos() {
     demonstrate_volatile();
     demonstrate_hints();
     demonstrate_references();
+    demonstrate_pair_and_tuple();
+    demonstrate_implicit_conversions();
+    demonstrate_if_switch_init();
+    demonstrate_function_pointers();
+    demonstrate_ref();
+    demonstrate_static_assert();
 }
 
 } // namespace cpp26_basics

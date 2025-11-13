@@ -8,6 +8,7 @@
 #include "templates.hpp"
 #include "oop.hpp"
 #include "threading.hpp"
+#include "networking.hpp"
 
 // Include all collection modules
 #include "collections/vector.hpp"
@@ -51,7 +52,8 @@ void display_menu() {
     std::cout << "  3. OOP (Classes, Inheritance, Polymorphism, Move Semantics)\n";
     std::cout << "  4. Collections (Vector, Map, Set, Algorithms, Ranges)\n";
     std::cout << "  5. Threading (Threads, Mutex, Async, Semaphore, Barrier)\n";
-    std::cout << "  6. Run All Demonstrations\n";
+    std::cout << "  6. Networking (Sockets, Address, Options, Byte Order)\n";
+    std::cout << "  7. Run All Demonstrations\n";
     std::cout << "  0. Exit\n";
     std::cout << "\nEnter your choice: ";
 }
@@ -242,6 +244,16 @@ int main() {
 
             case 6:
                 std::cout << "\n" << std::string(60, '=') << "\n";
+                std::cout << "           NETWORKING DEMONSTRATIONS\n";
+                std::cout << std::string(60, '=') << "\n";
+                time_execution("Networking", []() {
+                    cpp26_networking::run_all_demos();
+                });
+                wait_for_enter();
+                break;
+
+            case 7:
+                std::cout << "\n" << std::string(60, '=') << "\n";
                 std::cout << "           RUNNING ALL DEMONSTRATIONS\n";
                 std::cout << std::string(60, '=') << "\n";
 
@@ -268,6 +280,9 @@ int main() {
 
                     std::cout << "\n\n### THREADING ###\n";
                     cpp26_threading::run_all_demos();
+
+                    std::cout << "\n\n### NETWORKING ###\n";
+                    cpp26_networking::run_all_demos();
                 });
 
                 wait_for_enter();
@@ -297,12 +312,18 @@ int main() {
  *   - Pointers (raw, smart, pointer to pointer)
  *   - Dereferencing (array, struct, smart pointers)
  *   - Casting (static_cast, dynamic_cast, const_cast, reinterpret_cast)
+ *   - Implicit conversions (conversion constructors, conversion operators)
  *   - Inline (inline functions, inline variables, constexpr)
  *   - Static (static variables, static members)
  *   - Volatile (volatile variables, volatile pointers)
  *   - Compiler Hints ([[nodiscard]], [[maybe_unused]], [[deprecated]],
  *                     [[likely]], [[unlikely]], [[no_unique_address]], [[assume]])
  *   - References (lvalue, rvalue, forwarding)
+ *   - Pair & Tuple (std::pair, std::tuple, structured bindings, tie)
+ *   - If/Switch with initializer (C++17)
+ *   - Function pointers (declaration, arrays, callbacks)
+ *   - std::ref & std::cref (reference wrappers)
+ *   - static_assert (compile-time assertions)
  *
  * TEMPLATES:
  *   - Function templates
@@ -315,24 +336,29 @@ int main() {
  *   - Template template parameters
  *   - Fold expressions (C++17)
  *   - Deduction guides (C++17)
+ *   - Diamond operator / CTAD (Class Template Argument Deduction, C++17)
  *
  * OOP:
  *   - Basic classes (encapsulation)
  *   - Inheritance (single, multiple, virtual)
  *   - Polymorphism (virtual functions)
  *   - Abstract classes (pure virtual)
- *   - Operator overloading
+ *   - Operator overloading (arithmetic, comparison, stream, unary)
  *   - Friend functions/classes
- *   - Move semantics (C++11)
- *   - Rule of Five
+ *   - Move semantics (std::move, move constructor, move assignment)
+ *   - Rule of Five (destructor, copy ctor, copy assign, move ctor, move assign)
+ *   - Constructors (default, deleted, delegating)
  *   - std::format (C++20)
  *
- * COLLECTIONS:
+ * COLLECTIONS & ALGORITHMS:
  *   - Sequence containers (vector, array, list, forward_list, deque)
  *   - Associative containers (set, multiset, map, multimap)
  *   - Unordered containers (unordered_set, unordered_map)
  *   - Container adapters (stack, queue, priority_queue)
  *   - Algorithms (sort, find, count, transform, accumulate, etc.)
+ *   - Heap operations (make_heap, push_heap, pop_heap, sort_heap)
+ *   - Partition algorithms (partition, stable_partition, partition_point)
+ *   - Iterators (back_inserter, front_inserter)
  *   - Ranges (C++20 views: filter, transform, take, drop, reverse)
  *   - Range algorithms (all_of, any_of, none_of, count_if)
  *
@@ -351,14 +377,22 @@ int main() {
  *   - jthread (C++20)
  *   - Thread pool implementation
  *
+ * NETWORKING:
+ *   - Socket creation (TCP/UDP, socket types)
+ *   - Socket addressing (sockaddr_in, IPv4/IPv6)
+ *   - Socket options (setsockopt, getsockopt, SO_REUSEADDR, etc.)
+ *   - Socket operations (bind, listen, accept, connect, send, recv)
+ *   - Byte order conversion (htons, ntohs, htonl, ntohl)
+ *
  * MODERN C++ FEATURES:
  *   - auto keyword
  *   - Range-based for loops
  *   - Lambda expressions
  *   - std::format (C++20)
  *   - Structured bindings (C++17)
- *   - if/switch with initializer
+ *   - if/switch with initializer (C++17)
  *   - constexpr if (C++17)
+ *   - CTAD - Class Template Argument Deduction (C++17)
  *
  * ============================================================================
  */
